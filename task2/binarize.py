@@ -77,6 +77,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     imageio.imsave(
-        CHOICES[args.mode](args.output),
-        imageio.imread(args.input)
+        args.output,
+        CHOICES[args.mode](imageio.imread(args.input)).astype('uint8'),
     )
