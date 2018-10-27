@@ -1,3 +1,5 @@
+import os
+
 import imageio
 
 from utils import *
@@ -11,12 +13,12 @@ def random_dithering(image):
     return 255 * (image > np.random.randint(256, size=image.shape))
 
 
-def ordered_dithering(image, order=2):
+def ordered_dithering(image, order=4):
     matrix = 256 * make_dithering_matrix(order)
     scale = np.ceil(np.array(image.shape) / matrix.shape).astype(int)
     tiles = np.tile(matrix, scale)
 
-    return image > tiles[build_slices([0, 0], image.shape)]
+    return 255 * (image > tiles[build_slices([0, 0], image.shape)])
 
 
 def row_diffusion(row):
@@ -71,12 +73,21 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('mode', choices=CHOICES, help='the binarization mode.')
+    parser.add_argument('mode', choices=list(CHOICES) + ['all'], help='the binarization mode.')
     parser.add_argument('input', help='path to the input image.')
     parser.add_argument('output', help='path to the output image.')
     args = parser.parse_args()
 
-    imageio.imsave(
-        args.output,
-        CHOICES[args.mode](imageio.imread(args.input)).astype('uint8'),
-    )
+    image = imageio.imread(args.input)
+    if args.mode == 'all':
+        folder, filename = os.path.split(args.output)
+        for name, mode in CHOICES.items():
+            imageio.imsave(
+                os.path.join(folder, name + '_' + filename),
+                mode(image).astype('uint8'),
+            )
+    else:
+        imageio.imsave(
+            args.output,
+            CHOICES[args.mode](image).astype('uint8'),
+        )
