@@ -6,7 +6,7 @@ Examples are shown in `examples.ipynb`.
 
 ```bash
 git clone https://github.com/maxme1/cg-homework
-cd task2
+cd cg-homework/task2
 pip install -r requirements.txt
 ```
 
