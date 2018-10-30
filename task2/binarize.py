@@ -1,7 +1,7 @@
 import os
+from contextlib import suppress
 
 import imageio
-
 from utils import *
 
 
@@ -45,19 +45,20 @@ def bidirectional_error_diffusion(image):
 
 def floyd_steinberg(image):
     image = image.copy().astype(float)
-    shape = np.array(image.shape) - [1, 2]
-    for x, y in np.ndindex(*shape):
-        idx = (x, y + 1)
-        window_start = np.array([x, y], int)
+    for x, y in np.ndindex(*image.shape):
+        old_value = image[x, y]
+        image[x, y] = global_thresholding(old_value)
+        error = (old_value - image[x, y]) / 16
+        with suppress(IndexError):
+            image[x, y + 1] += 7 * error
+        with suppress(IndexError):
+            image[x + 1, y] += 5 * error
+        with suppress(IndexError):
+            image[x + 1, y + 1] += 1 * error
+        with suppress(IndexError):
+            image[x + 1, y - 1] += 3 * error
 
-        old_value = image[idx]
-        image[idx] = global_thresholding(old_value)
-        error = old_value - image[idx]
-
-        slc = build_slices(window_start, window_start + FS_MATRIX.shape)
-        image[slc] += FS_MATRIX * error
-
-    return global_thresholding(image)
+    return image.astype('uint8')
 
 
 CHOICES = {
