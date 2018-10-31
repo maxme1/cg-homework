@@ -1,74 +1,87 @@
-import pickle
 from collections import namedtuple, Counter
 from queue import PriorityQueue
-from typing import Dict
+from typing import Dict, Any
 
 
-class Node(namedtuple('Node', ['frequency', 'left', 'right', 'value'])):
+class Node(namedtuple('Node', ['left', 'right'])):
     def __lt__(self, other):
-        return isinstance(other, Node) and self.frequency < other.frequency
+        return isinstance(other, Node)
+
+    def __gt__(self, other):
+        return not self < other
 
 
-def build_tree(frequencies: Dict[bytes, float]):
+def build_tree(frequencies: Dict[Any, float]):
     nodes = PriorityQueue()
     for value, freq in frequencies.items():
-        nodes.put(Node(freq, None, None, value))
+        nodes.put((freq, value))
 
     while nodes.qsize() > 1:
-        node1, node2 = nodes.get(), nodes.get()
-        nodes.put(Node(node1.frequency + node2.frequency, node2, node1, None))
+        (freq1, node1), (freq2, node2) = nodes.get(), nodes.get()
+        nodes.put((freq1 + freq2, Node(node2, node1)))
 
-    return nodes.get()
+    return nodes.get()[1]
 
 
-def build_mapping(root: Node) -> Dict[bytes, str]:
+def build_mapping(root: Node) -> Dict[Any, str]:
     mapping = {}
 
     def builder(node: Node, prefix: str):
-        if not isinstance(node, Node):
-            return
-
-        builder(node.left, prefix + '1')
-        builder(node.right, prefix + '0')
-        if node.value is not None:
-            mapping[node.value] = prefix
+        if isinstance(node, Node):
+            builder(node.left, prefix + '1')
+            builder(node.right, prefix + '0')
+        else:
+            mapping[node] = prefix
 
     builder(root, '')
     return mapping
 
 
-def find_symbol(text: bytes, root: Node):
-    while root.value is None:
-        if text[0] == '1':
-            root = root.left
-        else:
-            root = root.right
-        text = text[1:]
+def pack_bytes(bits: str):
+    tail = len(bits) % 8
+    if tail:
+        padding = 8 - tail
+    else:
+        padding = 0
 
-    return root.value, text
-
-
-def to_bytes(s: str):
-    return bytes(bytearray(int(s[x:x + 8], 2) for x in range(0, len(s), 8)))
+    bits += '0' * padding
+    return bytes(int(bits[i:i + 8], 2) for i in range(0, len(bits), 8)), padding
 
 
-def from_bytes(array: bytes):
-    def pad(s):
-        return '0' * (8 - len(s)) + s
-
-    return ''.join(pad(bin(b)[2:]) for b in array)
+def encode_with_mapping(text: bytes, mapping: Dict[int, str]):
+    for b in text:
+        yield from mapping[b]
 
 
 def encode(text: bytes):
     tree = build_tree(Counter(text))
-    encoded = ''.join(map(build_mapping(tree).__getitem__, text))
-    return to_bytes(encoded), tree
+    mapping = build_mapping(tree)
+    return (*pack_bytes(''.join(map(mapping.__getitem__, text))), tree)
 
 
-def decode_with_tree(text: bytes, root: Node):
-    result = b''
-    text = from_bytes(text)
-    while text:
-        c, text = find_symbol(text, root)
-        result += c
-    return result
+def iterate_bits(number):
+    bit = 128
+    while bit:
+        yield number & bit
+        bit >>= 1
+
+
+def _decode(text: bytes, padding: int, root: Node):
+    node = root
+    end_pointer = 8 - padding
+    for i, byte in enumerate(text):
+        for j, bit in enumerate(iterate_bits(byte)):
+            if i == len(text) - 1 and j == end_pointer:
+                return
+
+            if bit:
+                node = node.left
+            else:
+                node = node.right
+            if not isinstance(node, Node):
+                yield node
+                node = root
+
+
+def decode(text: bytes, padding: int, root: Node):
+    return bytes(_decode(text, padding, root))
