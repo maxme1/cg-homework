@@ -1,2 +1,2 @@
-imageio
-numpy
+imageio>=2.3
+numpy>=1.14
