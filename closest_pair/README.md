@@ -1,8 +1,9 @@
 # Code for closest pair of points
 
 Written in pure Python, no dependencies.
-The points are randomly sample from an uniform distribution `U[0, BOX_SIZE]`.
-By default BOX_SIZE == 1000.
+
+The points are randomly sampled from an uniform distribution `U[0, BOX_SIZE]`.
+By default `BOX_SIZE == 1000`.
 
 # Usage
 
