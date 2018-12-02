@@ -47,8 +47,10 @@ def closest_pair(points):
                 if d >= dist:
                     break
 
-    solve(sorted(points, key=Counter))
-    return min_distance, first, second, comparisons
+    points = sorted(points, key=Counter)
+    after_sorted = comparisons
+    solve(points)
+    return min_distance, first, second, comparisons, after_sorted
 
 
 def naive_closest_pair(points):
@@ -61,21 +63,23 @@ def naive_closest_pair(points):
         if min_distance is None or d < min_distance:
             first, second, min_distance = x, y, d
 
-    return min_distance, first, second, comparisons
+    return min_distance, first, second, comparisons, 0
 
 
-def print_solution(min_distance, first, second, comparisons):
+def print_solution(min_distance, first, second, comparisons, sorting):
     print('Closest pair of points:', *sorted([first, second]))
     print('Distance:', min_distance)
     print('Comparisons performed:', comparisons)
+    print('Comparisons for sorting:', sorting)
+    print('Comparisons for the algorithm:', comparisons - sorting)
 
 
 if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--count', '-c', default=1000, required=False)
-    parser.add_argument('--box', '-b', default=1000, required=False)
+    parser.add_argument('--count', '-c', default=1000, type=int, required=False)
+    parser.add_argument('--box', '-b', default=1000, type=int, required=False)
     args = parser.parse_args()
 
     pts = [[random.uniform(0, args.box), random.uniform(0, args.box)] for _ in range(args.count)]
